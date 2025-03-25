@@ -218,27 +218,45 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Busca os membros da equipe
       const { data: members, error } = await supabase
         .from('team_members')
-        .select(`
-          id,
-          team_id,
-          user_id,
-          role,
-          auth.users!user_id (email)
-        `)
+        .select('*')
         .eq('team_id', teamId);
         
       if (error) throw error;
       
-      // Formata os dados dos membros para incluir o email
-      const formattedMembers = members.map(member => ({
-        id: member.id,
-        team_id: member.team_id,
-        user_id: member.user_id,
-        role: member.role,
-        user_email: member.auth?.users?.email || ''
-      }));
+      // Agora precisamos buscar os emails dos usuários separadamente
+      const memberData: TeamMember[] = [];
       
-      setTeamMembers(formattedMembers);
+      for (const member of members) {
+        try {
+          // Busca o email do usuário pelo ID
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('email')
+            .eq('id', member.user_id)
+            .single();
+            
+          if (userError) {
+            console.error('Erro ao buscar informações do usuário:', userError);
+            memberData.push({
+              ...member,
+              user_email: ''
+            });
+          } else {
+            memberData.push({
+              ...member,
+              user_email: userData?.email || ''
+            });
+          }
+        } catch (userFetchError) {
+          console.error('Erro ao buscar usuário:', userFetchError);
+          memberData.push({
+            ...member,
+            user_email: ''
+          });
+        }
+      }
+      
+      setTeamMembers(memberData);
     } catch (error: any) {
       console.error('Erro ao buscar membros da equipe:', error);
       toast.error('Erro ao carregar membros da equipe');
@@ -249,7 +267,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Busca o usuário pelo email
       const { data: users, error: userError } = await supabase
-        .from('auth.users')
+        .from('users')
         .select('id')
         .eq('email', email)
         .single();
