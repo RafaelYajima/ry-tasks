@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -8,7 +9,7 @@ export type Team = {
   name: string;
   description: string | null;
   created_at: string;
-  owner_id: string;
+  created_by: string;
 };
 
 export type TeamMember = {
@@ -68,7 +69,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: ownedTeams, error: ownedError } = await supabase
         .from('teams')
         .select('*')
-        .eq('owner_id', user.id);
+        .eq('created_by', user.id);
 
       if (ownedError) throw ownedError;
 
@@ -79,7 +80,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (memberError) throw memberError;
 
-      let memberTeamsDetails: any[] = [];
+      let memberTeamsDetails: Team[] = [];
       if (memberTeams && memberTeams.length > 0) {
         const teamIds = memberTeams.map(tm => tm.team_id);
         const { data, error } = await supabase
@@ -117,7 +118,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newTeam = {
         name,
         description: description || null,
-        owner_id: user.id
+        created_by: user.id
       };
       
       const { data, error } = await supabase
@@ -128,16 +129,20 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      await supabase.from('team_members').insert({
-        team_id: data.id,
-        user_id: user.id,
-        role: 'owner'
-      });
-      
-      setTeams(prev => [...prev, data]);
-      setCurrentTeam(data);
-      toast.success('Equipe criada com sucesso!');
-      return data.id;
+      if (data) {
+        await supabase.from('team_members').insert({
+          team_id: data.id,
+          user_id: user.id,
+          role: 'owner'
+        });
+        
+        const teamWithTypedData: Team = data;
+        setTeams(prev => [...prev, teamWithTypedData]);
+        setCurrentTeam(teamWithTypedData);
+        toast.success('Equipe criada com sucesso!');
+        return data.id;
+      }
+      return null;
     } catch (error: any) {
       console.error('Erro ao criar equipe:', error);
       toast.error('Erro ao criar equipe');
@@ -215,8 +220,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       for (const member of members) {
         try {
           const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('email')
+            .from('profiles')
+            .select('full_name, id')
             .eq('id', member.user_id)
             .single();
             
@@ -224,18 +229,26 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Erro ao buscar informações do usuário:', userError);
             memberData.push({
               ...member,
+              role: member.role as 'owner' | 'member',
               user_email: ''
             });
           } else {
+            // Get user email from auth.users
+            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(
+              member.user_id
+            );
+            
             memberData.push({
               ...member,
-              user_email: userData?.email || ''
+              role: member.role as 'owner' | 'member',
+              user_email: authUser?.user?.email || userData?.full_name || ''
             });
           }
         } catch (userFetchError) {
           console.error('Erro ao buscar usuário:', userFetchError);
           memberData.push({
             ...member,
+            role: member.role as 'owner' | 'member',
             user_email: ''
           });
         }
@@ -250,18 +263,16 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addTeamMember = async (teamId: string, email: string) => {
     try {
-      const { data: users, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
-        
-      if (userError || !users) {
+      const { data: authUser, error: authError } = await supabase.auth.admin.listUsers({
+        email: email
+      });
+      
+      if (authError || !authUser || authUser.users.length === 0) {
         toast.error('Usuário não encontrado');
         return;
       }
       
-      const userId = users.id;
+      const userId = authUser.users[0].id;
       
       const { data: existingMember, error: checkError } = await supabase
         .from('team_members')

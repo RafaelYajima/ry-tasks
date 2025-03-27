@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -18,6 +19,7 @@ export type Task = {
   team_id: string;
   assigned_to: string | null;
   created_by: string;
+  updated_at: string;
   assignee_email?: string;
   creator_email?: string;
 };
@@ -66,7 +68,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
 
-      const formattedTasks = data.map((task: any) => ({
+      const formattedTasks: Task[] = data.map((task: any) => ({
         ...task,
         assignee_email: task.assignee?.email || '',
         creator_email: task.creator?.email || ''
@@ -88,12 +90,21 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
+      // Ensure title is provided as it's required by the database
+      if (!task.title) {
+        toast.error('O título da tarefa é obrigatório');
+        return;
+      }
+      
       const newTask = {
-        ...task,
+        title: task.title,
+        description: task.description || null,
         team_id: currentTeam.id,
         created_by: user.id,
         status: task.status || 'pending',
         priority: task.priority || 'medium',
+        due_date: task.due_date || null,
+        assigned_to: task.assigned_to || null
       };
       
       const { data, error } = await supabase
@@ -104,11 +115,15 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      setTasks(prev => [...prev, {
-        ...data,
-        assignee_email: teamMembers.find(m => m.user_id === data.assigned_to)?.user_email || '',
-        creator_email: user.email || ''
-      }]);
+      if (data) {
+        const taskWithEmails: Task = {
+          ...data,
+          assignee_email: teamMembers.find(m => m.user_id === data.assigned_to)?.user_email || '',
+          creator_email: user.email || ''
+        };
+        
+        setTasks(prev => [...prev, taskWithEmails]);
+      }
       
       toast.success('Tarefa criada com sucesso!');
     } catch (error: any) {
