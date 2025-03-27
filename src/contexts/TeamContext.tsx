@@ -180,7 +180,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTeam = async (id: string) => {
     try {
-      if (currentTeam?.owner_id !== user?.id) {
+      // Check if user is the team owner (created_by matches user.id)
+      if (!user || !currentTeam || currentTeam.created_by !== user.id) {
         toast.error('Apenas o proprietário pode excluir a equipe');
         return;
       }
@@ -219,9 +220,10 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       for (const member of members) {
         try {
+          // Get user email from the user_emails view
           const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('full_name, id')
+            .from('user_emails')
+            .select('email')
             .eq('id', member.user_id)
             .single();
             
@@ -233,15 +235,10 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               user_email: ''
             });
           } else {
-            // Get user email from auth.users
-            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(
-              member.user_id
-            );
-            
             memberData.push({
               ...member,
               role: member.role as 'owner' | 'member',
-              user_email: authUser?.user?.email || userData?.full_name || ''
+              user_email: userData?.email || ''
             });
           }
         } catch (userFetchError) {
@@ -263,16 +260,19 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addTeamMember = async (teamId: string, email: string) => {
     try {
-      const { data: authUser, error: authError } = await supabase.auth.admin.listUsers({
-        email: email
-      });
+      // First, we need to find the user ID by email using the user_emails view
+      const { data: userData, error: userError } = await supabase
+        .from('user_emails')
+        .select('id')
+        .eq('email', email)
+        .single();
       
-      if (authError || !authUser || authUser.users.length === 0) {
+      if (userError || !userData) {
         toast.error('Usuário não encontrado');
         return;
       }
       
-      const userId = authUser.users[0].id;
+      const userId = userData.id;
       
       const { data: existingMember, error: checkError } = await supabase
         .from('team_members')
@@ -306,7 +306,11 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeTeamMember = async (teamId: string, userId: string) => {
     try {
-      if (currentTeam?.owner_id !== user?.id && user?.id !== userId) {
+      // Check if current user is the team owner or is removing themself
+      const isTeamOwner = user?.id === currentTeam?.created_by;
+      const isSelfRemoval = user?.id === userId;
+      
+      if (!isTeamOwner && !isSelfRemoval) {
         toast.error('Apenas o proprietário pode remover membros');
         return;
       }

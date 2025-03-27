@@ -68,7 +68,8 @@ const TeamMembers: React.FC = () => {
     return email.substring(0, 2).toUpperCase();
   };
 
-  const isOwner = currentTeam?.owner_id === user?.id;
+  // Check if the current user is the team owner (created the team)
+  const isOwner = currentTeam ? currentTeam.created_by === user?.id : false;
 
   return (
     <Card className="border shadow-sm animate-fade-in">

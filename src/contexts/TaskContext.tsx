@@ -60,8 +60,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('tasks')
         .select(`
           *,
-          assignee:assigned_to (email),
-          creator:created_by (email)
+          assignee:user_emails!assigned_to(email),
+          creator:user_emails!created_by(email)
         `)
         .eq('team_id', currentTeam.id)
         .order('due_date', { ascending: true });
@@ -70,6 +70,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const formattedTasks: Task[] = data.map((task: any) => ({
         ...task,
+        status: task.status as TaskStatus,
+        priority: task.priority as TaskPriority,
         assignee_email: task.assignee?.email || '',
         creator_email: task.creator?.email || ''
       }));
@@ -118,6 +120,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data) {
         const taskWithEmails: Task = {
           ...data,
+          status: data.status as TaskStatus,
+          priority: data.priority as TaskPriority,
           assignee_email: teamMembers.find(m => m.user_id === data.assigned_to)?.user_email || '',
           creator_email: user.email || ''
         };
