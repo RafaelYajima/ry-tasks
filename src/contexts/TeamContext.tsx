@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from "sonner";
 
@@ -44,7 +43,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
 
-  // Carrega as equipes do usuário quando ele estiver autenticado
   useEffect(() => {
     if (user) {
       fetchTeams();
@@ -54,7 +52,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  // Carrega os membros da equipe atual quando ela mudar
   useEffect(() => {
     if (currentTeam) {
       fetchTeamMembers(currentTeam.id);
@@ -68,7 +65,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoadingTeams(true);
     
     try {
-      // Busca equipes que o usuário possui
       const { data: ownedTeams, error: ownedError } = await supabase
         .from('teams')
         .select('*')
@@ -76,7 +72,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (ownedError) throw ownedError;
 
-      // Busca equipes das quais o usuário é membro
       const { data: memberTeams, error: memberError } = await supabase
         .from('team_members')
         .select('team_id')
@@ -84,7 +79,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (memberError) throw memberError;
 
-      // Se o usuário for membro de alguma equipe, busca os detalhes dessas equipes
       let memberTeamsDetails: any[] = [];
       if (memberTeams && memberTeams.length > 0) {
         const teamIds = memberTeams.map(tm => tm.team_id);
@@ -97,13 +91,11 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         memberTeamsDetails = data || [];
       }
 
-      // Combina as equipes e remove duplicatas
       const allTeams = [...(ownedTeams || []), ...memberTeamsDetails];
       const uniqueTeams = Array.from(new Map(allTeams.map(team => [team.id, team])).values());
       
       setTeams(uniqueTeams);
       
-      // Se tiver equipes e nenhuma estiver selecionada, seleciona a primeira
       if (uniqueTeams.length > 0 && !currentTeam) {
         setCurrentTeam(uniqueTeams[0]);
       }
@@ -136,7 +128,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Adiciona o criador como membro da equipe (owner)
       await supabase.from('team_members').insert({
         team_id: data.id,
         user_id: user.id,
@@ -184,13 +175,11 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTeam = async (id: string) => {
     try {
-      // Verificação de segurança: apenas o dono pode excluir a equipe
       if (currentTeam?.owner_id !== user?.id) {
         toast.error('Apenas o proprietário pode excluir a equipe');
         return;
       }
       
-      // Exclui a equipe
       const { error } = await supabase
         .from('teams')
         .delete()
@@ -198,7 +187,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Atualiza o estado
       setTeams(prev => prev.filter(team => team.id !== id));
       
       if (currentTeam?.id === id) {
@@ -215,7 +203,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchTeamMembers = async (teamId: string) => {
     try {
-      // Busca os membros da equipe
       const { data: members, error } = await supabase
         .from('team_members')
         .select('*')
@@ -223,12 +210,10 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Agora precisamos buscar os emails dos usuários separadamente
       const memberData: TeamMember[] = [];
       
       for (const member of members) {
         try {
-          // Busca o email do usuário pelo ID
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('email')
@@ -265,7 +250,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addTeamMember = async (teamId: string, email: string) => {
     try {
-      // Busca o usuário pelo email
       const { data: users, error: userError } = await supabase
         .from('users')
         .select('id')
@@ -279,7 +263,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const userId = users.id;
       
-      // Verifica se o usuário já é membro da equipe
       const { data: existingMember, error: checkError } = await supabase
         .from('team_members')
         .select('id')
@@ -292,7 +275,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Adiciona o usuário à equipe
       const { error } = await supabase
         .from('team_members')
         .insert({
@@ -303,7 +285,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Atualiza a lista de membros
       await fetchTeamMembers(teamId);
       toast.success('Membro adicionado com sucesso!');
     } catch (error: any) {
@@ -314,20 +295,17 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeTeamMember = async (teamId: string, userId: string) => {
     try {
-      // Verifica se o usuário atual é o proprietário da equipe
       if (currentTeam?.owner_id !== user?.id && user?.id !== userId) {
         toast.error('Apenas o proprietário pode remover membros');
         return;
       }
       
-      // Não permite remover o proprietário
       const memberToRemove = teamMembers.find(m => m.user_id === userId);
       if (memberToRemove?.role === 'owner') {
         toast.error('Não é possível remover o proprietário da equipe');
         return;
       }
       
-      // Remove o membro
       const { error } = await supabase
         .from('team_members')
         .delete()
@@ -336,7 +314,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Atualiza a lista de membros
       setTeamMembers(prev => prev.filter(member => member.user_id !== userId));
       toast.success('Membro removido com sucesso!');
     } catch (error: any) {

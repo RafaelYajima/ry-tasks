@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { useTeam } from './TeamContext';
 import { toast } from "sonner";
@@ -42,7 +41,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
 
-  // Carrega as tarefas quando o usuário estiver autenticado e uma equipe estiver selecionada
   useEffect(() => {
     if (user && currentTeam) {
       fetchTasks();
@@ -68,7 +66,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
 
-      // Formata os dados das tarefas para incluir emails
       const formattedTasks = data.map((task: any) => ({
         ...task,
         assignee_email: task.assignee?.email || '',
@@ -107,7 +104,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Adiciona a tarefa à lista local
       setTasks(prev => [...prev, {
         ...data,
         assignee_email: teamMembers.find(m => m.user_id === data.assigned_to)?.user_email || '',
@@ -130,7 +126,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Atualiza a tarefa na lista local
       setTasks(prev => 
         prev.map(task => 
           task.id === id 
@@ -161,7 +156,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Remove a tarefa da lista local
       setTasks(prev => prev.filter(task => task.id !== id));
       toast.success('Tarefa excluída com sucesso!');
     } catch (error: any) {
@@ -180,7 +174,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Atualiza a tarefa na lista local
       setTasks(prev => 
         prev.map(task => 
           task.id === taskId 
