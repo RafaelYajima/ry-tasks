@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from "lucide-react";
 
 // Schema de validação
 const loginSchema = z.object({
@@ -54,7 +55,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="seu@email.com" {...field} />
+                <Input placeholder="seu@email.com" {...field} autoComplete="email" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -68,7 +69,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             <FormItem>
               <FormLabel>Senha</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="********" {...field} />
+                <Input 
+                  type="password" 
+                  placeholder="********" 
+                  {...field} 
+                  autoComplete="current-password" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -80,7 +86,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           className="w-full"
           disabled={isLoading}
         >
-          {isLoading ? "Entrando..." : "Entrar"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Entrando...
+            </>
+          ) : "Entrar"}
         </Button>
       </form>
     </Form>

@@ -7,12 +7,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from "lucide-react";
 
 // Schema de validação
 const registerSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
-  confirmPassword: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
+  confirmPassword: z.string().min(6, { message: "Confirme sua senha" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não correspondem",
   path: ["confirmPassword"],
@@ -42,6 +43,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     try {
       await signUp(values.email, values.password);
       if (onSuccess) onSuccess();
+      form.reset();
     } catch (error) {
       // Erro já tratado no AuthContext
     } finally {
@@ -59,7 +61,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="seu@email.com" {...field} />
+                <Input placeholder="seu@email.com" {...field} autoComplete="email" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,7 +75,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             <FormItem>
               <FormLabel>Senha</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="********" {...field} />
+                <Input 
+                  type="password" 
+                  placeholder="********" 
+                  {...field} 
+                  autoComplete="new-password" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -87,7 +94,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             <FormItem>
               <FormLabel>Confirmar Senha</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="********" {...field} />
+                <Input 
+                  type="password" 
+                  placeholder="********" 
+                  {...field} 
+                  autoComplete="new-password" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -99,7 +111,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           className="w-full"
           disabled={isLoading}
         >
-          {isLoading ? "Registrando..." : "Criar Conta"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Registrando...
+            </>
+          ) : "Criar Conta"}
         </Button>
       </form>
     </Form>

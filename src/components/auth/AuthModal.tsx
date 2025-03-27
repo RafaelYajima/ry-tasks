@@ -10,22 +10,38 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: "login" | "register";
+  redirectTo?: string;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
   isOpen, 
   onClose, 
-  defaultTab = "login" 
+  defaultTab = "login",
+  redirectTo = "/dashboard"
 }) => {
   const [activeTab, setActiveTab] = useState<"login" | "register">(defaultTab);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Se o usuário já estiver autenticado, fecha o modal
+  React.useEffect(() => {
+    if (user) {
+      onClose();
+    }
+  }, [user, onClose]);
 
   const handleSuccess = () => {
     onClose();
+    if (redirectTo) {
+      navigate(redirectTo);
+    }
   };
 
   return (

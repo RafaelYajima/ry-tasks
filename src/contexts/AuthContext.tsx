@@ -1,18 +1,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
-  createClient, 
   Session, 
-  SupabaseClient, 
   User 
 } from '@supabase/supabase-js';
 import { toast } from "sonner";
-
-// Inicializa o cliente do Supabase
-const supabaseUrl = 'https://qpwnmvywzfxmitcnkpdw.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwd25tdnl3emZ4bWl0Y25rcGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU3MjExODUsImV4cCI6MjAzMTI5NzE4NX0.iKfQMoUf8Qb1aNONaNYgVcqmRJPWHgqN-wRZQUAy3No';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   user: User | null;
@@ -31,13 +24,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Configura o listener para mudanças na autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user || null);
+      setIsLoading(false);
+    });
+
     // Verifica a sessão atual quando o componente monta
     const getSession = async () => {
       setIsLoading(true);
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error("Error getting session:", error);
+        console.error("Erro ao recuperar sessão:", error);
         toast.error("Erro ao recuperar sessão");
       } else {
         setSession(session);
@@ -48,13 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     getSession();
-
-    // Configura o listener para mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user || null);
-      setIsLoading(false);
-    });
 
     return () => {
       subscription.unsubscribe();
@@ -74,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success("Registro realizado! Verifique seu e-mail para confirmar.");
     } catch (error: any) {
-      console.error("Error signing up:", error);
+      console.error("Erro ao registrar:", error);
       toast.error(error.message || "Erro ao criar conta");
       throw error;
     }
@@ -93,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      console.error("Error signing in:", error);
+      console.error("Erro ao fazer login:", error);
       toast.error(error.message || "Erro ao fazer login");
       throw error;
     }
@@ -109,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success("Logout realizado com sucesso!");
     } catch (error: any) {
-      console.error("Error signing out:", error);
+      console.error("Erro ao fazer logout:", error);
       toast.error(error.message || "Erro ao fazer logout");
       throw error;
     }
