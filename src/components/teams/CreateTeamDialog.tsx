@@ -8,7 +8,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { 
   Form, 
@@ -56,6 +57,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ isOpen, onClose }) 
       onClose();
     } catch (error) {
       // Erro já tratado no TeamContext
+      console.error("Erro ao criar equipe:", error);
     } finally {
       setIsLoading(false);
     }
@@ -66,6 +68,9 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ isOpen, onClose }) 
       <DialogContent className="sm:max-w-[500px] animate-scale-in">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Criar Nova Equipe</DialogTitle>
+          <DialogDescription>
+            Crie uma nova equipe para organizar suas tarefas e colaboradores.
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>

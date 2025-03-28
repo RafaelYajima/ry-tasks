@@ -130,15 +130,24 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       if (data) {
-        await supabase.from('team_members').insert({
+        // After creating the team, add the creator as an owner
+        const memberData = {
           team_id: data.id,
           user_id: user.id,
-          role: 'owner'
-        });
+          role: 'owner' as const
+        };
         
-        const teamWithTypedData: Team = data;
-        setTeams(prev => [...prev, teamWithTypedData]);
-        setCurrentTeam(teamWithTypedData);
+        const { error: memberError } = await supabase
+          .from('team_members')
+          .insert(memberData);
+        
+        if (memberError) {
+          console.error('Erro ao adicionar membro à equipe:', memberError);
+          // Continue even if there's an error with adding the member
+        }
+        
+        setTeams(prev => [...prev, data]);
+        setCurrentTeam(data);
         toast.success('Equipe criada com sucesso!');
         return data.id;
       }
