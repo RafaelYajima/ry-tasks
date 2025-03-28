@@ -25,9 +25,11 @@ import { Button } from "@/components/ui/button";
 import { useTeam } from '@/contexts/TeamContext';
 import { toast } from "sonner";
 
-// Schema de validação
+// Validation schema
 const teamSchema = z.object({
-  name: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres" }),
+  name: z.string()
+    .min(2, { message: "Nome deve ter pelo menos 2 caracteres" })
+    .max(50, { message: "Nome deve ter no máximo 50 caracteres" }),
   description: z.string().optional(),
 });
 
@@ -53,9 +55,12 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ isOpen, onClose }) 
   const onSubmit = async (values: TeamFormValues) => {
     setIsLoading(true);
     try {
-      await createTeam(values.name, values.description);
-      form.reset();
-      onClose();
+      const teamId = await createTeam(values.name, values.description);
+      if (teamId) {
+        toast.success("Equipe criada com sucesso!");
+        form.reset();
+        onClose();
+      }
     } catch (error: any) {
       console.error("Erro ao criar equipe:", error);
       toast.error(error?.message || "Erro ao criar equipe. Tente novamente.");
@@ -83,7 +88,11 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ isOpen, onClose }) 
                 <FormItem>
                   <FormLabel>Nome da Equipe</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome da sua equipe" {...field} />
+                    <Input 
+                      placeholder="Nome da sua equipe" 
+                      {...field} 
+                      disabled={isLoading}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,6 +109,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ isOpen, onClose }) 
                     <Textarea 
                       placeholder="Descreva o propósito desta equipe"
                       className="resize-none min-h-[100px]"
+                      disabled={isLoading}
                       {...field} 
                     />
                   </FormControl>
