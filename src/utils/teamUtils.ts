@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Team, TeamMember } from '@/types/team';
 import { toast } from "sonner";
@@ -9,11 +8,23 @@ export async function fetchTeams(): Promise<Team[]> {
       .from('teams')
       .select('*');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar equipes:', error);
+      
+      // Show a more user-friendly error message based on error type
+      if (error.code === '42P17') {
+        // Policy recursion error, different message
+        toast.error('Erro de configuração no banco de dados. Entre em contato com o suporte.');
+      } else {
+        toast.error('Não foi possível carregar suas equipes');
+      }
+      
+      throw error;
+    }
+    
     return data || [];
   } catch (error: any) {
-    console.error('Erro ao buscar equipes:', error);
-    toast.error('Não foi possível carregar suas equipes');
+    // Return an empty array as fallback in case of error
     return [];
   }
 }
@@ -32,7 +43,14 @@ export async function createTeam(name: string, userId: string, description?: str
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42P17') {
+        toast.error('Erro de configuração no banco de dados. Entre em contato com o suporte.');
+      } else {
+        toast.error('Erro ao criar equipe: ' + error.message);
+      }
+      throw error;
+    }
     
     if (data) {
       const memberData = {
@@ -55,7 +73,7 @@ export async function createTeam(name: string, userId: string, description?: str
     return null;
   } catch (error: any) {
     console.error('Erro ao criar equipe:', error);
-    throw error;
+    return null;
   }
 }
 

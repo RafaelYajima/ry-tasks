@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { Team, TeamMember } from '@/types/team';
@@ -11,12 +10,15 @@ import {
   addTeamMember as addTeamMemberUtil,
   removeTeamMember as removeTeamMemberUtil
 } from '@/utils/teamUtils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 type TeamContextType = {
   teams: Team[];
   currentTeam: Team | null;
   teamMembers: TeamMember[];
   isLoadingTeams: boolean;
+  hasTeamsError: boolean;
   setCurrentTeam: (team: Team | null) => void;
   createTeam: (name: string, description?: string) => Promise<string | null>;
   updateTeam: (id: string, name: string, description?: string) => Promise<void>;
@@ -35,6 +37,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
+  const [hasTeamsError, setHasTeamsError] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -57,6 +60,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     setIsLoadingTeams(true);
+    setHasTeamsError(false);
+    
     try {
       const teamsData = await fetchTeamsUtil();
       setTeams(teamsData);
@@ -64,6 +69,9 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (teamsData.length > 0 && !currentTeam) {
         setCurrentTeam(teamsData[0]);
       }
+    } catch (error) {
+      console.error('Erro ao buscar equipes:', error);
+      setHasTeamsError(true);
     } finally {
       setIsLoadingTeams(false);
     }
@@ -74,14 +82,19 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Você precisa estar logado para criar uma equipe');
     }
     
-    const teamId = await createTeamUtil(name, user.id, description);
-    
-    if (teamId) {
-      await fetchTeams();
-      return teamId;
+    try {
+      const teamId = await createTeamUtil(name, user.id, description);
+      
+      if (teamId) {
+        await fetchTeams();
+        return teamId;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Erro ao criar equipe:', error);
+      return null;
     }
-    
-    return null;
   };
 
   const updateTeam = async (id: string, name: string, description?: string) => {
@@ -147,6 +160,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentTeam,
     teamMembers,
     isLoadingTeams,
+    hasTeamsError,
     setCurrentTeam,
     createTeam,
     updateTeam,
