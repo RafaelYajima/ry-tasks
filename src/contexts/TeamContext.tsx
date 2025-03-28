@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -66,39 +65,18 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoadingTeams(true);
     
     try {
-      const { data: ownedTeams, error: ownedError } = await supabase
+      // With RLS policies in place, this query will automatically return teams where the user is either
+      // the creator or a member
+      const { data, error } = await supabase
         .from('teams')
-        .select('*')
-        .eq('created_by', user.id);
+        .select('*');
 
-      if (ownedError) throw ownedError;
-
-      const { data: memberTeams, error: memberError } = await supabase
-        .from('team_members')
-        .select('team_id')
-        .eq('user_id', user.id);
-
-      if (memberError) throw memberError;
-
-      let memberTeamsDetails: Team[] = [];
-      if (memberTeams && memberTeams.length > 0) {
-        const teamIds = memberTeams.map(tm => tm.team_id);
-        const { data, error } = await supabase
-          .from('teams')
-          .select('*')
-          .in('id', teamIds);
-          
-        if (error) throw error;
-        memberTeamsDetails = data || [];
-      }
-
-      const allTeams = [...(ownedTeams || []), ...memberTeamsDetails];
-      const uniqueTeams = Array.from(new Map(allTeams.map(team => [team.id, team])).values());
+      if (error) throw error;
       
-      setTeams(uniqueTeams);
+      setTeams(data || []);
       
-      if (uniqueTeams.length > 0 && !currentTeam) {
-        setCurrentTeam(uniqueTeams[0]);
+      if (data && data.length > 0 && !currentTeam) {
+        setCurrentTeam(data[0]);
       }
     } catch (error: any) {
       console.error('Erro ao buscar equipes:', error);
@@ -115,6 +93,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
+      // Create the team
       const newTeam = {
         name,
         description: description || null,
@@ -143,7 +122,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (memberError) {
           console.error('Erro ao adicionar membro à equipe:', memberError);
-          // Continue even if there's an error with adding the member
+          toast.error('Equipe criada, mas houve um erro ao adicionar você como membro');
         }
         
         setTeams(prev => [...prev, data]);
@@ -154,8 +133,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null;
     } catch (error: any) {
       console.error('Erro ao criar equipe:', error);
-      toast.error('Erro ao criar equipe');
-      return null;
+      toast.error(error.message || 'Erro ao criar equipe');
+      throw error;
     }
   };
 

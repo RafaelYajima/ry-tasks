@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useTeam } from '@/contexts/TeamContext';
+import { toast } from "sonner";
 
 // Schema de validação
 const teamSchema = z.object({
@@ -55,9 +56,9 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ isOpen, onClose }) 
       await createTeam(values.name, values.description);
       form.reset();
       onClose();
-    } catch (error) {
-      // Erro já tratado no TeamContext
+    } catch (error: any) {
       console.error("Erro ao criar equipe:", error);
+      toast.error(error?.message || "Erro ao criar equipe. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
