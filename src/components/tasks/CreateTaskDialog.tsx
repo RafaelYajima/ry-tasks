@@ -244,7 +244,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ isOpen, onClose }) 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Não atribuído</SelectItem>
+                        <SelectItem value="unassigned">Não atribuído</SelectItem>
                         {teamMembers.map((member) => (
                           <SelectItem key={member.user_id} value={member.user_id}>
                             {member.user_email || member.user_id}

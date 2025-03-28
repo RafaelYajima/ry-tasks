@@ -46,7 +46,7 @@ const TaskList: React.FC = () => {
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="in_progress">Em Progresso</SelectItem>
               <SelectItem value="completed">Concluída</SelectItem>
@@ -63,7 +63,7 @@ const TaskList: React.FC = () => {
               <SelectValue placeholder="Filtrar por prioridade" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as prioridades</SelectItem>
+              <SelectItem value="all">Todas as prioridades</SelectItem>
               <SelectItem value="low">Baixa</SelectItem>
               <SelectItem value="medium">Média</SelectItem>
               <SelectItem value="high">Alta</SelectItem>

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -32,7 +31,7 @@ type TaskContextType = {
   deleteTask: (id: string) => Promise<void>;
   fetchTasks: () => Promise<void>;
   assignTask: (taskId: string, userId: string | null) => Promise<void>;
-  filterTasks: (status?: TaskStatus, priority?: TaskPriority, assignedToMe?: boolean) => Task[];
+  filterTasks: (status?: TaskStatus | 'all', priority?: TaskPriority | 'all', assignedToMe?: boolean) => Task[];
 };
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -92,7 +91,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      // Ensure title is provided as it's required by the database
       if (!task.title) {
         toast.error('O título da tarefa é obrigatório');
         return;
@@ -214,10 +212,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const filterTasks = (status?: TaskStatus, priority?: TaskPriority, assignedToMe = false): Task[] => {
+  const filterTasks = (status?: TaskStatus | 'all', priority?: TaskPriority | 'all', assignedToMe = false): Task[] => {
     return tasks.filter(task => {
-      const statusMatch = !status || task.status === status;
-      const priorityMatch = !priority || task.priority === priority;
+      const statusMatch = !status || status === 'all' || task.status === status;
+      const priorityMatch = !priority || priority === 'all' || task.priority === priority;
       const assignedMatch = !assignedToMe || task.assigned_to === user?.id;
       return statusMatch && priorityMatch && assignedMatch;
     });
