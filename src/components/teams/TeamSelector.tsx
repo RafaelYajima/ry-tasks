@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from 'lucide-react';
-import { useTeam, Team } from '@/contexts/TeamContext';
+import { useTeam } from '@/contexts/TeamContext';
 import CreateTeamDialog from './CreateTeamDialog';
 
 const TeamSelector: React.FC = () => {

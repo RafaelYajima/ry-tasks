@@ -1,23 +1,16 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
-import { toast } from "sonner";
-
-export type Team = {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  created_by: string;
-};
-
-export type TeamMember = {
-  id: string;
-  team_id: string;
-  user_id: string;
-  role: 'owner' | 'member';
-  user_email?: string;
-};
+import { Team, TeamMember } from '@/types/team';
+import { 
+  fetchTeams as fetchTeamsUtil,
+  createTeam as createTeamUtil,
+  updateTeam as updateTeamUtil,
+  deleteTeam as deleteTeamUtil,
+  fetchTeamMembers as fetchTeamMembersUtil,
+  addTeamMember as addTeamMemberUtil,
+  removeTeamMember as removeTeamMemberUtil
+} from '@/utils/teamUtils';
 
 type TeamContextType = {
   teams: Team[];
@@ -62,25 +55,15 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchTeams = async () => {
     if (!user) return;
-    setIsLoadingTeams(true);
     
+    setIsLoadingTeams(true);
     try {
-      // With RLS policies in place, this query will automatically return teams where the user is either
-      // the creator or a member
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*');
-
-      if (error) throw error;
+      const teamsData = await fetchTeamsUtil();
+      setTeams(teamsData);
       
-      setTeams(data || []);
-      
-      if (data && data.length > 0 && !currentTeam) {
-        setCurrentTeam(data[0]);
+      if (teamsData.length > 0 && !currentTeam) {
+        setCurrentTeam(teamsData[0]);
       }
-    } catch (error: any) {
-      console.error('Erro ao buscar equipes:', error);
-      toast.error('Não foi possível carregar suas equipes');
     } finally {
       setIsLoadingTeams(false);
     }
@@ -88,241 +71,75 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createTeam = async (name: string, description?: string): Promise<string | null> => {
     if (!user) {
-      toast.error('Você precisa estar logado para criar uma equipe');
-      return null;
+      throw new Error('Você precisa estar logado para criar uma equipe');
     }
     
-    try {
-      // Create the team
-      const newTeam = {
-        name,
-        description: description || null,
-        created_by: user.id
-      };
-      
-      const { data, error } = await supabase
-        .from('teams')
-        .insert(newTeam)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      if (data) {
-        // After creating the team, add the creator as an owner
-        const memberData = {
-          team_id: data.id,
-          user_id: user.id,
-          role: 'owner' as const
-        };
-        
-        const { error: memberError } = await supabase
-          .from('team_members')
-          .insert(memberData);
-        
-        if (memberError) {
-          console.error('Erro ao adicionar membro à equipe:', memberError);
-          toast.error('Equipe criada, mas houve um erro ao adicionar você como membro');
-        }
-        
-        setTeams(prev => [...prev, data]);
-        setCurrentTeam(data);
-        toast.success('Equipe criada com sucesso!');
-        return data.id;
-      }
-      return null;
-    } catch (error: any) {
-      console.error('Erro ao criar equipe:', error);
-      toast.error(error.message || 'Erro ao criar equipe');
-      throw error;
+    const teamId = await createTeamUtil(name, description, user.id);
+    
+    if (teamId) {
+      await fetchTeams();
+      return teamId;
     }
+    
+    return null;
   };
 
   const updateTeam = async (id: string, name: string, description?: string) => {
-    try {
-      const updates = {
-        name,
-        description: description || null,
-        updated_at: new Date()
-      };
-      
-      const { error } = await supabase
-        .from('teams')
-        .update(updates)
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      setTeams(prev => prev.map(team => team.id === id ? { ...team, ...updates } : team));
-      
-      if (currentTeam?.id === id) {
-        setCurrentTeam(prev => prev ? { ...prev, ...updates } : null);
-      }
-      
-      toast.success('Equipe atualizada com sucesso!');
-    } catch (error: any) {
-      console.error('Erro ao atualizar equipe:', error);
-      toast.error('Erro ao atualizar equipe');
+    await updateTeamUtil(id, name, description);
+    
+    setTeams(prev => prev.map(team => 
+      team.id === id ? { ...team, name, description: description || null } : team
+    ));
+    
+    if (currentTeam?.id === id) {
+      setCurrentTeam(prev => 
+        prev ? { ...prev, name, description: description || null } : null
+      );
     }
   };
 
   const deleteTeam = async (id: string) => {
-    try {
-      // Check if user is the team owner (created_by matches user.id)
-      if (!user || !currentTeam || currentTeam.created_by !== user.id) {
-        toast.error('Apenas o proprietário pode excluir a equipe');
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('teams')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      setTeams(prev => prev.filter(team => team.id !== id));
-      
-      if (currentTeam?.id === id) {
-        const remainingTeams = teams.filter(team => team.id !== id);
-        setCurrentTeam(remainingTeams.length > 0 ? remainingTeams[0] : null);
-      }
-      
-      toast.success('Equipe excluída com sucesso!');
-    } catch (error: any) {
-      console.error('Erro ao excluir equipe:', error);
-      toast.error('Erro ao excluir equipe');
+    if (!user || !currentTeam) {
+      throw new Error('Operação não permitida');
+    }
+    
+    const isOwner = currentTeam.created_by === user.id;
+    if (!isOwner) {
+      throw new Error('Apenas o proprietário pode excluir a equipe');
+    }
+    
+    await deleteTeamUtil(id, user.id);
+    
+    const updatedTeams = teams.filter(team => team.id !== id);
+    setTeams(updatedTeams);
+    
+    if (currentTeam.id === id) {
+      setCurrentTeam(updatedTeams.length > 0 ? updatedTeams[0] : null);
     }
   };
 
   const fetchTeamMembers = async (teamId: string) => {
-    try {
-      const { data: members, error } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('team_id', teamId);
-        
-      if (error) throw error;
-      
-      const memberData: TeamMember[] = [];
-      
-      for (const member of members) {
-        try {
-          // Get user email from the user_emails view
-          const { data: userData, error: userError } = await supabase
-            .from('user_emails')
-            .select('email')
-            .eq('id', member.user_id)
-            .single();
-            
-          if (userError) {
-            console.error('Erro ao buscar informações do usuário:', userError);
-            memberData.push({
-              ...member,
-              role: member.role as 'owner' | 'member',
-              user_email: ''
-            });
-          } else {
-            memberData.push({
-              ...member,
-              role: member.role as 'owner' | 'member',
-              user_email: userData?.email || ''
-            });
-          }
-        } catch (userFetchError) {
-          console.error('Erro ao buscar usuário:', userFetchError);
-          memberData.push({
-            ...member,
-            role: member.role as 'owner' | 'member',
-            user_email: ''
-          });
-        }
-      }
-      
-      setTeamMembers(memberData);
-    } catch (error: any) {
-      console.error('Erro ao buscar membros da equipe:', error);
-      toast.error('Erro ao carregar membros da equipe');
-    }
+    const membersData = await fetchTeamMembersUtil(teamId);
+    setTeamMembers(membersData);
   };
 
   const addTeamMember = async (teamId: string, email: string) => {
-    try {
-      // First, we need to find the user ID by email using the user_emails view
-      const { data: userData, error: userError } = await supabase
-        .from('user_emails')
-        .select('id')
-        .eq('email', email)
-        .single();
-      
-      if (userError || !userData) {
-        toast.error('Usuário não encontrado');
-        return;
-      }
-      
-      const userId = userData.id;
-      
-      const { data: existingMember, error: checkError } = await supabase
-        .from('team_members')
-        .select('id')
-        .eq('team_id', teamId)
-        .eq('user_id', userId)
-        .single();
-        
-      if (existingMember) {
-        toast.error('Usuário já é membro desta equipe');
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('team_members')
-        .insert({
-          team_id: teamId,
-          user_id: userId,
-          role: 'member'
-        });
-        
-      if (error) throw error;
-      
+    await addTeamMemberUtil(teamId, email);
+    
+    if (currentTeam?.id === teamId) {
       await fetchTeamMembers(teamId);
-      toast.success('Membro adicionado com sucesso!');
-    } catch (error: any) {
-      console.error('Erro ao adicionar membro:', error);
-      toast.error('Erro ao adicionar membro à equipe');
     }
   };
 
   const removeTeamMember = async (teamId: string, userId: string) => {
-    try {
-      // Check if current user is the team owner or is removing themself
-      const isTeamOwner = user?.id === currentTeam?.created_by;
-      const isSelfRemoval = user?.id === userId;
-      
-      if (!isTeamOwner && !isSelfRemoval) {
-        toast.error('Apenas o proprietário pode remover membros');
-        return;
-      }
-      
-      const memberToRemove = teamMembers.find(m => m.user_id === userId);
-      if (memberToRemove?.role === 'owner') {
-        toast.error('Não é possível remover o proprietário da equipe');
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('team_members')
-        .delete()
-        .eq('team_id', teamId)
-        .eq('user_id', userId);
-        
-      if (error) throw error;
-      
-      setTeamMembers(prev => prev.filter(member => member.user_id !== userId));
-      toast.success('Membro removido com sucesso!');
-    } catch (error: any) {
-      console.error('Erro ao remover membro:', error);
-      toast.error('Erro ao remover membro da equipe');
+    if (!user || !currentTeam) {
+      throw new Error('Operação não permitida');
     }
+    
+    const isOwner = currentTeam.created_by === user.id;
+    await removeTeamMemberUtil(teamId, userId, user.id, isOwner);
+    
+    setTeamMembers(prev => prev.filter(member => member.user_id !== userId));
   };
 
   const value = {
@@ -350,3 +167,5 @@ export const useTeam = () => {
   }
   return context;
 };
+
+export { type Team, type TeamMember };
