@@ -18,7 +18,7 @@ export async function fetchTeams(): Promise<Team[]> {
   }
 }
 
-export async function createTeam(name: string, description?: string, userId: string): Promise<string | null> {
+export async function createTeam(name: string, userId: string, description?: string): Promise<string | null> {
   try {
     const newTeam = {
       name,

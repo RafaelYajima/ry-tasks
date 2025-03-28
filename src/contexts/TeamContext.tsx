@@ -74,7 +74,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Você precisa estar logado para criar uma equipe');
     }
     
-    const teamId = await createTeamUtil(name, description, user.id);
+    const teamId = await createTeamUtil(name, user.id, description);
     
     if (teamId) {
       await fetchTeams();
