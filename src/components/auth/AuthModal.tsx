@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent,
@@ -31,8 +31,15 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Update active tab when defaultTab changes
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
+
   // Se o usuário já estiver autenticado, fecha o modal
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       onClose();
     }
