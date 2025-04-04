@@ -1,11 +1,20 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/layout/Header';
 import { ChevronRight, CheckCircle2, Users, Clock } from 'lucide-react';
+import AuthModal from '@/components/auth/AuthModal';
 
 const Index = () => {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<"login" | "register">("register");
+  
+  const openRegisterModal = () => {
+    setAuthModalTab("register");
+    setIsAuthModalOpen(true);
+  };
+
   const features = [
     {
       title: 'Criar Equipes',
@@ -43,12 +52,10 @@ const Index = () => {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center gap-4 animate-fade-in [animation-delay:400ms]">
-                <Link to="/dashboard">
-                  <Button size="lg" className="px-8">
-                    Começar agora
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                <Button size="lg" className="px-8" onClick={openRegisterModal}>
+                  Começar agora
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
                 <Link to="/about">
                   <Button variant="outline" size="lg" className="px-8">
                     Saiba mais
@@ -102,11 +109,9 @@ const Index = () => {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/dashboard">
-                  <Button size="lg" className="px-8">
-                    Comece gratuitamente
-                  </Button>
-                </Link>
+                <Button size="lg" className="px-8" onClick={openRegisterModal}>
+                  Comece gratuitamente
+                </Button>
               </div>
             </div>
           </div>
@@ -128,6 +133,12 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        defaultTab={authModalTab}
+      />
     </div>
   );
 };
