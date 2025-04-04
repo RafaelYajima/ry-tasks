@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TeamProvider } from "./contexts/TeamContext";
 import { TaskProvider } from "./contexts/TaskContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { StrictMode } from "react";
 import Index from "./pages/Index";
 import About from "./pages/About";
@@ -27,24 +28,26 @@ const App = () => (
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <TeamProvider>
-            <TaskProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/features" element={<Features />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/404" element={<NotFound />} />
-                  <Route path="*" element={<Navigate to="/404" replace />} />
-                </Routes>
-              </BrowserRouter>
-            </TaskProvider>
-          </TeamProvider>
-        </AuthProvider>
+        <ThemeProvider defaultTheme="light">
+          <AuthProvider>
+            <TeamProvider>
+              <TaskProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/features" element={<Features />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/404" element={<NotFound />} />
+                    <Route path="*" element={<Navigate to="/404" replace />} />
+                  </Routes>
+                </BrowserRouter>
+              </TaskProvider>
+            </TeamProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </StrictMode>

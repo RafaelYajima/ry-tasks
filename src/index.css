@@ -91,7 +91,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -103,7 +103,7 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.glass-dark {
+.dark .glass {
   background: rgba(17, 25, 40, 0.75);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

@@ -24,7 +24,10 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
@@ -43,7 +46,7 @@ const Dashboard = () => {
           <TeamSidebar />
           
           <SidebarInset>
-            <main className="flex-1 p-4 md:p-6">
+            <main className="flex-1 p-4 md:p-6 animate-fade-in">
               <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-8">
                 <div>
                   <h1 className="text-3xl font-bold tracking-tighter">Dashboard</h1>
@@ -71,7 +74,9 @@ const Dashboard = () => {
             </main>
           </SidebarInset>
           
-          <SidebarTrigger className="fixed bottom-6 right-6 z-50 shadow-md bg-background rounded-full p-2" />
+          <SidebarTrigger 
+            className="fixed bottom-6 right-6 z-50 shadow-md bg-background rounded-full p-2 border border-border hover:bg-secondary transition-all" 
+          />
         </div>
       </div>
     </SidebarProvider>
@@ -84,8 +89,8 @@ const TeamSidebar = () => {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarContent className="py-2">
-        <div className="flex flex-col items-center gap-2">
+      <SidebarContent className="py-4">
+        <div className="flex flex-col items-center gap-4">
           {teams.map((team) => (
             <TeamIcon 
               key={team.id} 
@@ -98,7 +103,7 @@ const TeamSidebar = () => {
           <div className="my-2 w-10 h-[1px] bg-border mx-auto"></div>
           
           <button 
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all duration-200 shadow-sm hover:shadow"
             aria-label="Criar nova equipe"
           >
             <Plus className="h-6 w-6" />
@@ -133,18 +138,18 @@ const TeamIcon = ({ team, isActive, onClick }) => {
 
   return (
     <button
-      className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all ${
+      className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 shadow-sm ${
         isActive 
-          ? 'bg-primary text-primary-foreground' 
-          : 'bg-secondary text-secondary-foreground hover:bg-primary/80 hover:text-primary-foreground'
+          ? 'ring-2 ring-primary scale-110' 
+          : 'hover:bg-secondary hover:scale-105'
       }`}
-      style={{ backgroundColor: isActive ? generateColor(team.name) : '' }}
+      style={{ backgroundColor: generateColor(team.name) }}
       onClick={onClick}
     >
       {isActive && (
-        <div className="absolute -left-1 w-1 h-8 bg-white rounded-r-full" />
+        <div className="absolute -left-1 w-1.5 h-8 bg-white dark:bg-zinc-200 rounded-r-full" />
       )}
-      <span className="text-sm font-semibold">{getInitials(team.name)}</span>
+      <span className="text-sm font-semibold text-white">{getInitials(team.name)}</span>
     </button>
   );
 };
