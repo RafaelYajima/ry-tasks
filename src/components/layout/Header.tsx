@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ const Header = () => {
           <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent">TaskFlow</span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4">
           <Link to="/about" className="text-foreground/80 hover:text-primary transition-colors">
             Sobre
@@ -91,6 +93,7 @@ const Header = () => {
           )}
         </nav>
 
+        {/* Mobile Menu Button */}
         <button 
           className="md:hidden p-2 rounded-md"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -99,6 +102,7 @@ const Header = () => {
         </button>
       </div>
 
+      {/* Mobile Navigation */}
       {isMenuOpen && (
         <div className="md:hidden absolute top-16 left-0 right-0 bg-background/95 backdrop-blur-lg border-b animate-slide-in">
           <div className="container py-4 px-4 space-y-3">
